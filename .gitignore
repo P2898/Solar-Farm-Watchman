@@ -1,0 +1,19 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Runtime dynamic states and logs
+watchman_state.json
+scada_metrics.json
+iec104_state.json
+vendor_audit.log
+*.log
+*.pcap
+
+# Environments & IDEs
+venv/
+.env
+.vscode/
+.idea/
+.DS_Store

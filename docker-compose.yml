@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Level 1: Central Solar Inverters (3x 2.5 MW)
+  sim-inverters:
+    build: .
+    command: python sim_inverters.py
+    networks:
+      icr-network:
+        ipv4_address: 192.168.1.20
+    ports:
+      - "5020:5020"
+      - "5021:5021"
+      - "5022:5022"
+    restart: unless-stopped
+
+  # Level 3: Pooling Substation RTU Gateway (IEC 60870-5-104)
+  sim-iec104:
+    build: .
+    command: python sim_iec104.py
+    networks:
+      icr-network:
+        ipv4_address: 192.168.1.30
+    ports:
+      - "2404:2404"
+    restart: unless-stopped
+
+  # Level 3: Legitimate Plant SCADA Master Poller
+  scada-poller:
+    build: .
+    command: python scada_poller.py
+    depends_on:
+      - sim-inverters
+      - sim-iec104
+    networks:
+      icr-network:
+        ipv4_address: 192.168.1.10
+    restart: unless-stopped
+
+  # Level 2: The Security Watchman (Passive SPAN Sensor)
+  edge-watchman:
+    build: .
+    command: python edge_watchman.py
+    depends_on:
+      - sim-inverters
+    networks:
+      icr-network:
+        ipv4_address: 192.168.1.50
+    restart: unless-stopped
+
+  # Operator Web Dashboard (Streamlit)
+  web-dashboard:
+    build: .
+    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - edge-watchman
+    networks:
+      icr-network:
+        ipv4_address: 192.168.1.60
+    restart: unless-stopped
+
+networks:
+  icr-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
